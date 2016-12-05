@@ -25,11 +25,13 @@ module DataAnon
 
       def source_db connection_spec
         @source_database = connection_spec
+        fail 'Cannot connect to the Source DB' unless test_connection(DataAnon::Utils::SourceDatabase, connection_spec)
       end
 
       def destination_db connection_spec
         @destination_database = connection_spec
-      end
+        fail 'Cannot connect to the Destination DB' unless test_connection(DataAnon::Utils::DestinationDatabase, connection_spec)
+        end
 
       def default_field_strategies default_strategies
         @user_defaults = default_strategies
@@ -59,6 +61,12 @@ module DataAnon
         @tables.each { |table| table.errors.print }
       end
 
+      private
+
+      def test_connection(db_class, conn_spec)
+        db_class.establish_connection conn_spec
+        db_class.connection_pool.with_connection { |con| con.active? } rescue false
+      end
     end
 
     class Sequential
