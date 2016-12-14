@@ -3,7 +3,7 @@ module DataAnon
     class Base
       include Utils::Logging
 
-      attr_accessor :fields, :user_strategies, :fields_missing_strategy, :errors
+      attr_accessor :fields, :user_strategies, :fields_missing_strategy, :errors, :name
 
       def initialize source_database, destination_database, name, user_strategies
         @name = name
