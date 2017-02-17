@@ -7,6 +7,8 @@ module DataAnon
       def initialize name
         @name = name
         @strategy = DataAnon::Strategy::Whitelist
+        @before_hooks = {all: [], each: []}
+        @after_hooks = {all: [], each: []}
         @user_defaults = {}
         @tables = []
         @execution_strategy = DataAnon::Core::Sequential
@@ -33,6 +35,14 @@ module DataAnon
         fail 'Cannot connect to the Destination DB' unless test_connection(DataAnon::Utils::DestinationDatabase, connection_spec)
         end
 
+      def before(type, &block)
+        @before_hooks[type] << block
+      end
+
+      def after(type, &block)
+        @after_hooks[type] << block
+      end
+
       def default_field_strategies default_strategies
         @user_defaults = default_strategies
       end
@@ -45,7 +55,15 @@ module DataAnon
 
       def anonymize
         begin
-          @execution_strategy.new.anonymize @tables
+          @before_hooks[:all].each do |b|
+            b.call(table)
+          end
+          @execution_strategy.new.anonymize @tables,
+                                            before_hooks: @before_hooks, after_hooks: @after_hooks
+          @after_hooks[:all].each do |b|
+            b.call(table)
+          end
+
         rescue => e
           logger.error "\n#{e.message} \n #{e.backtrace}"
         end
@@ -70,10 +88,17 @@ module DataAnon
     end
 
     class Sequential
-      def anonymize tables
+      def anonymize tables, options = {}
         tables.each do |table|
           begin
+            options[:before_hooks][:each].each do |b|
+              b.call(table)
+            end if options[:before_hooks]
             table.process
+            options[:after_hooks][:each].each do |b|
+              b.call(table)
+            end if options[:after_hooks]
+
           rescue => e
             logger.error "\n#{e.message} \n #{e.backtrace}"
           end

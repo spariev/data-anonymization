@@ -1,3 +1,4 @@
+# coding: utf-8
 module DataAnon
   module Core
 
@@ -11,7 +12,9 @@ module DataAnon
 
       def log_error record, exception
         @errors << { :record => record, :exception => exception}
-        raise "Reached limit of error for a table" if @errors.length > 100
+        puts record.inspect
+        puts exception.inspect
+        raise "Reached limit of error for a table" if @errors.length > 1
       end
 
       def errors
