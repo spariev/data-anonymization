@@ -1,3 +1,3 @@
 module DataAnonymization
-  VERSION = '0.8.1wz'
+  VERSION = '0.8.0.2wz'
 end
