@@ -52,4 +52,27 @@ describe "End 2 End RDBMS Whitelist Acceptance Test using SQLite database" do
     new_rec.longitude.should be_between( -84.044636, -64.044636)
 
   end
+
+  it "should filter records with the given condition" do
+    CustomerSample.insert_record source_connection_spec, CustomerSample::SAMPLE_DATA[1]
+
+    database "Customer" do
+      strategy DataAnon::Strategy::Whitelist
+      source_db source_connection_spec
+      destination_db dest_connection_spec
+
+      table 'customers' do
+        primary_key 'cust_id'
+        batch_size 1
+        filter {|rel| rel.where('cust_id > ?', 100)}
+        whitelist 'cust_id', 'address', 'zipcode', 'first_name'
+      end
+    end
+
+    DataAnon::Utils::DestinationDatabase.establish_connection dest_connection_spec
+    dest_table = DataAnon::Utils::DestinationTable.create 'customers'
+    dest_table.count.should == 1
+    new_rec = dest_table.where("cust_id" => CustomerSample::SAMPLE_DATA[1][:cust_id]).first
+    new_rec.first_name.should == 'Rohit'
+  end
 end

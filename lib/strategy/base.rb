@@ -49,6 +49,10 @@ module DataAnon
         @continue_block = block
       end
 
+      def filter &block
+        @filter_block = block
+      end
+
       def anonymize *fields, &block
         if block.nil?
           fields.each { |f| @fields[f] = DataAnon::Strategy::Field::DefaultAnon.new(@user_strategies) }
@@ -90,7 +94,7 @@ module DataAnon
 
       def process
         logger.debug "Processing table #{@name} with fields strategies #{@fields}"
-        total = source_table.count
+        total = filter_records(source_table).count
         if total > 0
           progress = progress_bar.new(@name, total)
           if @primary_keys.empty? || !@batch_size.present?
@@ -137,9 +141,9 @@ module DataAnon
       def source_table_limited
         @source_table_limited ||= begin
           if @limit.present?
-            source_table.all.limit(@limit).order(created_at: :desc)
+            filter_records(source_table).all.limit(@limit).order(created_at: :desc)
           else
-            source_table.all
+            filter_records(source_table).all
           end
         end
       end
@@ -159,7 +163,13 @@ module DataAnon
         @progress_bar = progress_bar
       end
 
-
+      def filter_records(rel)
+        if @filter_block
+          @filter_block.call(rel)
+        else
+          rel
+        end
+      end
     end
   end
 end
